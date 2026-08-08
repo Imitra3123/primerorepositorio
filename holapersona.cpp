@@ -6,9 +6,9 @@ int main() {
     int edad = 0;
     cout << "¿Como te llamas?\n" << endl;
     getline(cin, nombre);
-    cout << "¿Cuantos años tienes?\n" << endl;
+    cout << "¿Cuantos anos tienes?\n" << endl;
     cin >> edad;
     cout << "Hola " << nombre << "!\n" << endl;
-    cout << "Tienes " << edad << " años.\n" << endl;
+    cout << "Tienes " << edad << " anos.\n" << endl;
     return 0;
 }
