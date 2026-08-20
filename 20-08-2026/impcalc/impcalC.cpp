@@ -13,11 +13,12 @@ int main() {
     int operation;
 
     cout << "Welcome to impCalc!\n" << endl;
-    cout << "Choose an operation:\n" << endl;
+    cout << "Available operations:\n" << endl;
     cout << "1. Add\n" << endl;
     cout << "2. Subtract\n" << endl;
     cout << "3. Multiply\n" << endl;
     cout << "4. Divide\n" << endl;
+    cout << "Enter the number corresponding to the operation you want to perform: ";
     cin >> operation;
 
     cout << "Enter two numbers: ";
