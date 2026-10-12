@@ -90,89 +90,39 @@ static void HandleButtonInput(const std::string& token) {
         displayBuffer += token;}
 }
 static void RenderCalculatorGrid(uint32_t fontId, int textColor) {
-    constexpr Clay_LayoutDirection CLAY_LAYOUT_DIRECTION_TOP_TO_BOTTOM={};
-    constexpr Clay_LayoutDirection CLAY_LAYOUT_DIRECTION_LEFT_TO_RIGHT={};
-    constexpr Clay_LayoutDirection directionTopToBottom = CLAY_LAYOUT_DIRECTION_TOP_TO_BOTTOM;
-    constexpr Clay_LayoutDirection directionLeftToRight = CLAY_LAYOUT_DIRECTION_LEFT_TO_RIGHT;
-
+    static const char* gridButtons[4][4] = {
+        {"1", "2", "3", "+"}, {"4", "5", "6", "—"},
+        {"7", "8", "9", "X"}, {"DEL", "0", "=", "÷"}
+    };
     CLAY(CLAY_ID("GridOuterBox"), {
-    .layout = {
-        .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
-        .childGap = 8,
-        .layoutDirection = directionTopToBottom}}) {
-        // 2. Fix: Pre-define row IDs so .c_str() points to stable memory
-        static constexpr std::string rowIds[4] = { "Row_0", "Row_1", "Row_2", "Row_3" };
+        .layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
+                    .childGap = 8, .layoutDirection = CLAY_TOP_TO_BOTTOM }
+    }) {
         for (int row = 0; row < 4; ++row) {
-            CLAY(CLAY_ID(rowIds[row].c_str()), {
-                .layout = {
-                    .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
-                    .childGap = 8,
-                    .layoutDirection = directionLeftToRight
-                }
-            })
-
-                // This loop MUST be nested inside the row block
+            CLAY(CLAY_ID(std::to_string(row).c_str()), {
+                .layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
+                            .childGap = 8, .layoutDirection = CLAY_LEFT_TO_RIGHT }
+            }) {
                 for (int col = 0; col < 4; ++col) {
-                    const char* gridButtons[4][4] = {
-                        {"1", "2", "3", "+"},
-                        {"4", "5", "6", "—"},
-                        {"7", "8", "9", "X"},
-                        {"DEL", "0", "=", "÷"}
-                    };
-
-                    std::string btnIdStr = "Btn_" + std::to_string(row) + "_" + std::to_string(col);
-
-                    // Render individual button element
-                    CLAY(CLAY_ID(btnIdStr.c_str()), {
-                        .layout = {
-                            .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() }
-                            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }, // Moved to top
-                             }
-                    }) {
-                        const bool isOperator = (col == 3 || (row == 3 && col == 0) || (row == 3 && col == 2));
-                        const bool isHovered = Clay_Hovered();
-                        const bool isPressed = isHovered && IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-
-                        Clay_Color btnColor;
-                        if (isOperator) {
-                            btnColor = isPressed ? Colour_Button_Operation_Pressed : (isHovered ? Colour_Button_Operation_Hover : Colour_Button_Operation);
-                        } else {
-                            btnColor = isPressed ? Colour_Button_Pressed : (isHovered ? Colour_Button_Hover : Colour_Button);
-                        }
-                        const char * label;
-                        CLAY_TEXT(CLAY_STRING(label),
-                        CLAY_TEXT_CONFIG({ .textColor == {255, 255, 255, 255},
-                                         .fontId = static_cast<uint16_t>(fontId, .int fontSize = ;}));
+                    const char* label = gridButtons[row][col];
+                    const bool isOperator = col == 3 || (row == 3 && (col == 0 || col == 2));
+                    const bool hovered = Clay_Hovered();
+                    const Clay_Color color = isOperator ? Colour_Button_Operation : Colour_Button;
+                    CLAY(CLAY_ID(label), { .layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
+                        .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+                        }, .backgroundColor = hovered ? Colour_Button_Hover : color,
+                        .cornerRadius = CLAY_CORNER_RADIUS(24) }) {
+                        if ((hovered && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) || IsKeyPressedForButton(label)) HandleButtonInput(label);
+                        CLAY_TEXT({ label, static_cast<int32_t>(strlen(label)) }, CLAY_TEXT_CONFIG({
+                            .fontId = static_cast<uint16_t>(fontId), .fontSize = strcmp(label, "DEL") == 0 ? 20 : 36,
+                            .textColor = { 0, 0, 0, 255 } }));
                     }
-                } }
+                }
+            }
         }
-    }}
-
-CLAY(CLAY_SID(Clay_ParseString(label)), CLAY_ELEMENT_CONFIG({
-    .layout = {
-        .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
-        .alignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER }
-    },
-    .backgroundColor = btnColor,
-    .cornerRadius = CLAY_CORNER_RADIUS(24)
-})) {
-    if ((Clay_Hovered() && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) || IsKeyPressedForButton(label)) {
-        HandleButtonInput(label);
     }
-
-    CLAY_TEXT(
-        Clay_ParseString(label),
-        CLAY_TEXT_CONFIG({
-            .fontId = fontId,
-            .fontSize = (strcmp(label, "DEL") == 0) ? 20 : 36,
-            .textColor = { 0, 0, 0, 255 }
-        })
-    );
 }
 
-
-}
-void RenderCalculatorGrid(uint32_t uint32);
 int main() {
     InitWindow(400, 600, "impcalc");
     SetTargetFPS(60);
@@ -218,7 +168,7 @@ int main() {
                 .cornerRadius = CLAY_CORNER_RADIUS(24)
             }) {
                 CLAY_TEXT(
-                    Clay_ParseString(displayBuffer.c_str()),
+                    { displayBuffer.c_str(), static_cast<int32_t>(displayBuffer.size()) },
                     CLAY_TEXT_CONFIG({
                         .fontId = fontId,
                         .fontSize = (displayBuffer.length() > 10) ? 24 : 40,
